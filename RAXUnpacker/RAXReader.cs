@@ -81,10 +81,13 @@ namespace RAXUnpacker
             Remaining = FileCount;
         }
 
+        #region Read
+
         /// <summary>
         /// Read the next file.
         /// </summary>
         /// <returns>The next file.</returns>
+        /// <exception cref="InvalidOperationException">The reader is disposed or there are no files left to read.</exception>
         public FileDataInfo ReadNextFile()
         {
             if (IsDisposed)
@@ -107,6 +110,11 @@ namespace RAXUnpacker
             return fileDataInfo;
         }
 
+        /// <summary>
+        /// Read the next file asynchronously.
+        /// </summary>
+        /// <returns>The next file.</returns>
+        /// <exception cref="InvalidOperationException">The reader is disposed or there are no files left to read.</exception>
         public async Task<FileDataInfo> ReadNextFileAsync()
         {
             if (IsDisposed)
@@ -129,6 +137,8 @@ namespace RAXUnpacker
             Remaining--;
             return fileDataInfo;
         }
+
+        #endregion
 
         #region IsRead
 

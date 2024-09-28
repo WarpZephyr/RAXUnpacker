@@ -61,6 +61,16 @@
             return result;
         }
 
+        internal static string GetExtensionWithoutExtensionDot(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return string.Empty;
+            }
+
+            return Path.GetExtension(path).TrimStart('.');
+        }
+
         internal static string GetExtensions(string path)
         {
             ArgumentNullException.ThrowIfNull(path, nameof(path));
@@ -88,10 +98,26 @@
 
         internal static string GetFileNameWithoutExtensions(string path) => GetWithoutExtensions(Path.GetFileName(path));
 
-        internal static string GetFileNameWithCorrectedExtensions(string path, char dotReplaceChar = '-')
+        internal static string GetFileNameWithChangedExtensionChar(string path, char dotReplaceChar = '-')
         {
             string name = Path.GetFileName(path);
             return GetWithoutExtensions(name) + GetCorrectedExtensions(name, dotReplaceChar);
         }
+
+        internal static string GetDirectoryNameWithoutPath(string path) => Path.GetFileName(TrimTrailingDirectorySeparators(path));
+
+        internal static string GetRelativePath(string path, string relativeFrom)
+        {
+            if (string.IsNullOrEmpty(relativeFrom))
+            {
+                return path;
+            }
+
+            StringExceptionHandler.ThrowIfNotStartsWith(path, relativeFrom, nameof(path), nameof(relativeFrom));
+            return path[relativeFrom.Length..];
+        }
+
+        internal static string GetRelativePathWithoutLeadingSlash(string path, string relativeFrom)
+            => TrimLeadingDirectorySeparators(GetRelativePath(path, relativeFrom));
     }
 }
