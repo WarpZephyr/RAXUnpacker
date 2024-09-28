@@ -104,7 +104,7 @@ namespace RAXUnpacker
             var section = new RAXSection(_br);
             nextPosition += section.SectionLength;
 
-            var fileDataInfo = new FileDataInfo(_br.ReadFixedString(section.NameLength).TrimEnd('\0'), _br.ReadBytesSafe(section.DataLength));
+            var fileDataInfo = new FileDataInfo(new string(section.Signature), _br.ReadFixedString(section.NameLength).TrimEnd('\0'), _br.ReadBytesSafe(section.DataLength));
             _br.BaseStream.Position = nextPosition;
             Remaining--;
             return fileDataInfo;
@@ -132,7 +132,7 @@ namespace RAXUnpacker
             nextPosition += section.SectionLength;
 
             var name = await _br.ReadFixedStringAsync(section.NameLength);
-            var fileDataInfo = new FileDataInfo(name.TrimEnd('\0'), await _br.ReadBytesSafeAsync(section.DataLength));
+            var fileDataInfo = new FileDataInfo(new string(section.Signature), name.TrimEnd('\0'), await _br.ReadBytesSafeAsync(section.DataLength));
             _br.BaseStream.Position = nextPosition;
             Remaining--;
             return fileDataInfo;

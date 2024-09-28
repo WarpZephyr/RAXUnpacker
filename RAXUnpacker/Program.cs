@@ -40,6 +40,7 @@ namespace RAXUnpacker
 
         static async Task UnpackRAXAsync(string path, RAXReader reader)
         {
+            bool writeName = true;
             string directory = PathHandler.GetDirectoryName(path);
             string name = PathHandler.GetFileNameWithChangedExtensionChar(path, '-');
             string outputDirectory = PathHandler.CombineAndCreateDirectory(directory, name);
@@ -47,7 +48,18 @@ namespace RAXUnpacker
             for (int i = 0; i < reader.FileCount; i++)
             {
                 var fileDataInfo = await reader.ReadNextFileAsync();
-                string outputPath = PathHandler.CombineAndCreateDirectory(outputDirectory, fileDataInfo.Path);
+                string outName = fileDataInfo.Path;
+                if (string.IsNullOrWhiteSpace(outName))
+                {
+                    outName = $"{i}.{fileDataInfo.Type.ToLowerInvariant()}".TrimEnd('\0');
+                    writeName = false;
+                }
+                else if (!writeName)
+                {
+                    throw new Exception("Some files had names while others didn't, please report this to the developer.");
+                }
+
+                string outputPath = PathHandler.CombineAndCreateDirectory(outputDirectory, outName);
                 if (LZSS.Is(fileDataInfo.Bytes))
                 {
                     outputPath += ".lzss";
@@ -56,6 +68,13 @@ namespace RAXUnpacker
                 await File.WriteAllBytesAsync(outputPath, fileDataInfo.Bytes);
                 fileOrderLines.Add(outputPath);
             }
+
+            // TODO: Make this whole thing better later.
+            if (!writeName)
+            {
+                await File.WriteAllTextAsync(PathHandler.CombineAndCreateDirectory(outputDirectory, "nonames"), string.Empty);
+            }
+
             await File.WriteAllLinesAsync(PathHandler.CombineAndCreateDirectory(outputDirectory, "fileorder.txt"), fileOrderLines);
         }
 
@@ -73,19 +92,23 @@ namespace RAXUnpacker
             }
 
             string fileOrderPath = PathHandler.Combine(directory, "fileorder.txt");
+            string noNamePath = PathHandler.Combine(directory, "noname");
+            bool writeNames = File.Exists(noNamePath);
+
             if (File.Exists(fileOrderPath))
             {
-                WriteFromPaths(outputPath, directory, File.ReadAllLines(fileOrderPath));
+                WriteFromPaths(outputPath, directory, File.ReadAllLines(fileOrderPath), writeNames);
             }
             else
             {
-                WriteFromDirectory(outputPath, directory);
+                WriteFromDirectory(outputPath, directory, writeNames);
             }
         }
 
-        static void WriteFromDirectory(string outputPath, string directory)
+        static void WriteFromDirectory(string outputPath, string directory, bool writeNames)
         {
             var writer = new RAXWriter(outputPath);
+            writer.WritePaths = writeNames;
             var files = Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories);
             int count = 0;
 
@@ -112,7 +135,7 @@ namespace RAXUnpacker
             writer.WriteAllFiles();
         }
 
-        static void WriteFromPaths(string outputPath, string directory, IList<string> paths)
+        static void WriteFromPaths(string outputPath, string directory, IList<string> paths, bool writeNames)
         {
             int alignmentSize;
             if (paths.Count > 0)
@@ -125,6 +148,7 @@ namespace RAXUnpacker
             }
 
             RAXWriter writer = new RAXWriter(outputPath, paths.Count, alignmentSize);
+            writer.WritePaths = writeNames;
             foreach (var path in paths)
             {
                 string archivePath = PathHandler.GetRelativePathWithoutLeadingSlash(path, directory);

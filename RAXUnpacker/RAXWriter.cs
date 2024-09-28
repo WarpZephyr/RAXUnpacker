@@ -25,6 +25,11 @@ namespace RAXUnpacker
         public int AlignmentSize { get; set; }
 
         /// <summary>
+        /// Whether or not to write paths.
+        /// </summary>
+        public bool WritePaths { get; set; } = true;
+
+        /// <summary>
         /// The number of files written so far.
         /// </summary>
         public int Written { get; private set; } = 0;
@@ -165,6 +170,9 @@ namespace RAXUnpacker
                 extendedNamePadding = false;
             }
 
+            if (!WritePaths)
+                nameLength = 0;
+
             string signature = PathHandler.GetExtensionWithoutExtensionDot(path).ToUpper();
 
             byte[] data = File.ReadAllBytes(file.FullPath);
@@ -173,11 +181,15 @@ namespace RAXUnpacker
 
             var section = new RAXSection(signature, sectionLength, nameLength, dataLength);
             section.Write(_bw);
-            _bw.WriteFixedString(path.Replace('\\', '/'));
-            _bw.Pad(AlignmentSize);
-            if (extendedNamePadding)
+
+            if (WritePaths)
             {
-                _bw.Write(new byte[AlignmentSize]);
+                _bw.WriteFixedString(path.Replace('\\', '/'));
+                _bw.Pad(AlignmentSize);
+                if (extendedNamePadding)
+                {
+                    _bw.Write(new byte[AlignmentSize]);
+                }
             }
 
             _bw.Write(data);
